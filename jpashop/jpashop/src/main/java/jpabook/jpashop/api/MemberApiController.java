@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class MemberApiController {
     private final MemberService memberService;
-
+    //API, DTO 적용
     //**회원 등록 API**//
     //@RequestBody를 통해 메소드 파라미터를 Binding한다 (제이슨 데이터를 멤버로 바꿔준다) //값 넣기 post
     @PostMapping("api/v1/members") //@Valid는 @RequestBody Annotation으로 Mapping되는 Java 객체의 유효성 검증을 수행하는 Annotation이다
