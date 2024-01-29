@@ -20,7 +20,9 @@ public class Member {
     @Embedded //Embeddable 타입을 받아옴
     private Address address;
 
+
     //@JsonIgnore //필요한 정보만 노출시키고 싶으면 (엔티티를 외부에 노출시키지 않기 위해)
+    @JsonIgnore
     @OneToMany(mappedBy = "member") //Member의 PK가 Order에게 있기 때문에 Order에 정의된 member라는 Member 변수에 매핑
     private List<Order> orders = new ArrayList<>();
 }

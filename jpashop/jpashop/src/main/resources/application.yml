@@ -1,4 +1,4 @@
-spring: #위에 띄어쓰기 2칸을 남겨놔야 한다
+spring:
   datasource:
     url: jdbc:h2:tcp://localhost/~/jpashop
     username: sa
@@ -7,13 +7,14 @@ spring: #위에 띄어쓰기 2칸을 남겨놔야 한다
 
   jpa:
     hibernate:
-      ddl-auto: none #애플리케이션 실행 시점에 테이블을 drop하고, 다시 생성한다
+      ddl-auto: create #애플리케이션 실행 시점에 테이블을 drop하고, 다시 생성한다
     properties:
       hibernate:
-        #show_sql: true #System.out에 하이버네이트 실행 SQL을 남긴다
+#        show_sql: true #System.out에 하이버네이트 실행 SQL을 남긴다
         format_sql: true
+        default_batch_fetch_size: 100
 
 logging:
   level:
     org.hibernate.SQL: debug #logger을 통해 하이버네이트 실행 SQL을 남긴다
-    org.hibernate.type: trace
+#    org.hibernate.type: trace

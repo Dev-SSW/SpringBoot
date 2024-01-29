@@ -1,4 +1,4 @@
-package jpabook.jpashop.api;
+package jpabook.jpashop.Api;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
@@ -50,6 +50,8 @@ public class MemberApiController {
             this.id = id;
         }
     }
+
+    //ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
     //**회원 수정 API**// //수정 put
     @PutMapping("api/v2/members/{id}")
     public UpdateMemberResponse UpdateMemberV2(@PathVariable("id") Long id, @RequestBody @Valid UpdateMemberRequest request) {
@@ -66,6 +68,8 @@ public class MemberApiController {
         private Long id;
         private String name;
     }
+
+    //ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
     //**회원 조회 API**//
     @GetMapping("api/v1/members") //jsonignore로 요청하지 않은 제이슨이 보내지지 않도록 막을 순 있지만, 엔티티에 화면을 위한 로직이 추가되야하고,
     public List<Member> memberV1() {//추가되지 않는다면 엔티티의 모든 값들이 노출될 수 있기에 좋지 않은 방법이다

@@ -1,6 +1,5 @@
 package jpabook.jpashop.Repository;
 
-import jpabook.jpashop.Domain.Item.Item;
 import jpabook.jpashop.Domain.Order;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
@@ -43,5 +42,33 @@ public class OrderRepository {
         cq.where(cb.and(criteria.toArray(new Predicate[criteria.size()])));
         TypedQuery<Order> query = em.createQuery(cq).setMaxResults(1000);
         return query.getResultList();
+    }
+
+    public List<Order> findAllWithMemberDelivery() { //fetch join 방식을 이용해서 한 번의 SQL문으로 모두 조회
+        return em.createQuery(
+                "select o from Order o"+
+                " join fetch o.member m" +
+                " join fetch o.delivery d", Order.class).getResultList();
+    }
+
+    public List<Order> findAllWithItem() { //V3
+        return em.createQuery(
+                "select distinct o from Order o"+
+                " join fetch o.member m" +
+                " join fetch o.delivery d" +
+                " join fetch o.orderItems oi" +
+                " join fetch oi.item i", Order.class)
+                .getResultList();
+    }
+
+    public List<Order> findAllWithMemberDelivery(int offset, int limit) { //V3.1
+        return em.createQuery(
+                        "select o from Order o"+
+                        " join fetch o.member m" +
+                        " join fetch o.delivery d"
+                        , Order.class)
+                .setFirstResult(offset)
+                .setMaxResults(limit)
+                .getResultList();
     }
 }
