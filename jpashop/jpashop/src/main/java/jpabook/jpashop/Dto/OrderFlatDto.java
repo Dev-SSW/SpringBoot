@@ -6,8 +6,8 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
-@Data
-public class OrderFlatDto { //한 방 쿼리 Order와 OrderItem을 조인해서 한 번에 가져오는 방법 V6
+@Data //V6
+public class OrderFlatDto { //한 방 쿼리 Order와 OrderItem을 조인해서 한 번에 가져오는 방법
     //OrderQueryDto에서 가져옴
     private Long orderId;
     private String name;

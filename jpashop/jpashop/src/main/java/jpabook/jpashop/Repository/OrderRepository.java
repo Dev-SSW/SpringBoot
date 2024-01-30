@@ -14,6 +14,7 @@ import java.util.List;
 @Repository
 @RequiredArgsConstructor
 public class OrderRepository {
+
     private final EntityManager em; //final 변수 자동 주입 (RequiredArgsConstructor로)
 
     public void save(Order order) {
@@ -44,14 +45,18 @@ public class OrderRepository {
         return query.getResultList();
     }
 
-    public List<Order> findAllWithMemberDelivery() { //fetch join 방식을 이용해서 한 번의 SQL문으로 모두 조회
+    //ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
+
+    public List<Order> findAllWithMemberDelivery() { //fetch join 방식을 이용해서 한 번의 SQL문으로 모두 조회 //V3 Simple-Orders
         return em.createQuery(
                 "select o from Order o"+
                 " join fetch o.member m" +
                 " join fetch o.delivery d", Order.class).getResultList();
     }
 
-    public List<Order> findAllWithItem() { //V3
+    //ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
+
+    public List<Order> findAllWithItem() { //V3 (Member, Delivery, OrderItem, Item을 모두 조인 페치
         return em.createQuery(
                 "select distinct o from Order o"+
                 " join fetch o.member m" +
@@ -61,7 +66,7 @@ public class OrderRepository {
                 .getResultList();
     }
 
-    public List<Order> findAllWithMemberDelivery(int offset, int limit) { //V3.1
+    public List<Order> findAllWithMemberDelivery(int offset, int limit) { //V3.1 페이징을 활용하기 위한 방식
         return em.createQuery(
                         "select o from Order o"+
                         " join fetch o.member m" +

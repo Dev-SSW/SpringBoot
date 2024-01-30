@@ -7,7 +7,9 @@ import jpabook.jpashop.Domain.OrderStatus;
 import jpabook.jpashop.Dto.OrderFlatDto;
 import jpabook.jpashop.Dto.OrderItemQueryDto;
 import jpabook.jpashop.Dto.OrderQueryDto;
-import jpabook.jpashop.Repository.Order.Query.OrderQueryRepository;
+import jpabook.jpashop.QueryService.Order.OrderDto;
+import jpabook.jpashop.QueryService.Order.OrderQueryService;
+import jpabook.jpashop.Repository.Query.OrderQueryRepository;
 import jpabook.jpashop.Repository.OrderRepository;
 import jpabook.jpashop.Repository.OrderSearch;
 import lombok.Data;
@@ -25,9 +27,10 @@ import static java.util.stream.Collectors.*;
 public class OrderApiController {
     private final OrderRepository orderRepository;
     private final OrderQueryRepository orderQueryRepository;
-
     //OrderItem의 일대다 조인의 문제로 데이터 베이스 쿼리가 증가하기에 성능이 떨어지는 것을 해결하기 위한 방법들
 
+    //ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
+    //엔티티 직접 노출
     @GetMapping("api/v1/orders")
     public List<Order> ordersV1() {
         List<Order> all = orderRepository.findAllByCriteria(new OrderSearch());
@@ -44,7 +47,9 @@ public class OrderApiController {
         }
         return all;
     }
+
     //ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
+    //엔티티를 DTO로 변환
     @GetMapping("api/v2/orders")
     public List<OrderDto> orderV2() {
         List<Order> orders = orderRepository.findAllByCriteria(new OrderSearch());
@@ -52,6 +57,42 @@ public class OrderApiController {
         return collect;
     }
 
+    //ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
+    /*//엔티티를 DTO로 변환 - 페치 조인 최적화
+    @GetMapping("api/v3/orders")
+    //쿼리가 한 번으로 나간다 (fetch join 이용) but. fetch join을 일대다에서 사용하면 페이징이 불가능하다
+    //페이징 : 몇 번째부터 몇 번째까지의 리스트만 가져오는 것
+    //컬렉션 페치 조인은 하나만 써야한다
+    public List<OrderDto> orderV3() { //Order과 OrderItem에 대한 각 Order에 따라 4개가 나오게 된다 (같은 ID에 아이템 두개씩)
+        //distinct를 이용해서 같은 id의 중복을 제거할 수 있다. 하지만 DB 쿼리에서는 모든 줄이 똑같은 것이 아니므로 그대로 4개이다
+        List<Order> orders = orderRepository.findAllWithItem();
+        List<OrderDto> result = orders.stream().map(o -> new OrderDto(o)).collect(toList());
+        return result;
+    }*/
+
+    //OSIV 해결을 위한 예시 - QueryService를 별도로 이용하여 해결할 수 있다
+    private final OrderQueryService orderQueryService;
+    @GetMapping("api/v3/orders")
+    public List<jpabook.jpashop.QueryService.Order.OrderDto> orderV3() {
+        return orderQueryService.orderV3();
+    }
+
+    //ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
+    //엔티티를 DTO로 변환 - 페이징과 한계 돌파
+    @GetMapping("api/v3.1/orders") //yml에서 배치 사이즈를 설정했다 (물품이 10개일 때 배치 사이즈를 2로하면 쿼리는 5번만 나간다, (미리 끌어온다))
+    public List<OrderDto> orderV3_page( //V3는 쿼리는 하나가 나가지만, 데이터 전송이 4개이다
+                                        //V3.1은 쿼리가 세 개 나가지만, 페이징이 가능하고, 데이터 전송은 2개이다 (많은 물품이 있거나, 사용자가 많을 때 더욱 효율적이다)
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
+            @RequestParam(value = "offset", defaultValue = "100") int limit)
+    {
+        List<Order> orders = orderRepository.findAllWithMemberDelivery(offset, limit); //OrderItem을 가져오지 않는 함수
+        List<OrderDto> result = orders.stream().map(o -> new OrderDto(o)).collect(toList());
+        return result;
+    }
+
+    //ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
+
+    //엔티티 조회 DTO
     @Data
     static class OrderDto {
         private Long orderId;
@@ -89,32 +130,9 @@ public class OrderApiController {
             count = orderItem.getCount();
         }
     }
-    //ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
-    @GetMapping("api/v3/orders")
-    //쿼리가 한 번으로 나간다 (fetch join 이용) but. fetch join을 일대다에서 사용하면 페이징이 불가능하다
-    //페이징 : 몇 번째부터 몇 번째까지의 리스트만 가져오는 것
-    //컬렉션 페치 조인은 하나만 써야한다
-    public List<OrderDto> orderV3() { //Order과 OrderItem에 대한 각 Order에 따라 4개가 나오게 된다 (같은 ID에 아이템 두개씩)
-        //distinct를 이용해서 같은 id의 중복을 제거할 수 있다. 하지만 DB 쿼리에서는 모든 줄이 똑같은 것이 아니므로 그대로 4개이다
-        List<Order> orders = orderRepository.findAllWithItem();
-        List<OrderDto> result = orders.stream().map(o -> new OrderDto(o)).collect(toList());
-        return result;
-    }
-    //ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
-
-    @GetMapping("api/v3.1/orders") //yml에서 배치 사이즈를 설정했다 (물품이 10개일 때 배치 사이즈를 2로하면 쿼리는 5번만 나간다, (미리 끌어온다))
-    public List<OrderDto> orderV3_page( //V3는 쿼리는 하나가 나가지만, 데이터 전송이 4개이다
-                                        //V3.1은 쿼리가 세 개 나가지만, 페이징이 가능하고, 데이터 전송은 2개이다 (많은 물품이 있거나, 사용자가 많을 때 더욱 효율적이다)
-            @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "offset", defaultValue = "100") int limit)
-    {
-        List<Order> orders = orderRepository.findAllWithMemberDelivery(offset, limit); //OrderItem을 가져오지 않는 함수
-        List<OrderDto> result = orders.stream().map(o -> new OrderDto(o)).collect(toList());
-        return result;
-    }
 
     //ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
-
+    //JPA에서 DTO로 직접 조회
     @GetMapping("api/v4/orders") //ToOne 관계를 먼저 조회하고 ToMany는 별도의 DTO를 하나 더 만들어서 최적화를 따로 시켜줌
                                  //DTO를 별도로 만들어서 적용해줬다 (컨트롤러가 리포지토리와 연관관계가 설정될 수 있으므로)
                                  //JPA에서 DTO를 직접 조회하는 방법 (fit하게 가져온다!), 컬렉션 조회 포함
@@ -124,15 +142,15 @@ public class OrderApiController {
     }
 
     //ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
-
-    @GetMapping("api/v5/orders")
+    //JPA에서 DTO로 직접 조회 - 컬렉션 조회 최적화
+    @GetMapping("api/v5/orders") //엔티티 조회에서 배치_패치_사이즈를 직접 쿼리를 짠 느낌이다
     public List<OrderQueryDto> orderV5() { //쿼리 2번으로 최적화 (트레이드 오프 관계이다)
                                            //코드 작성이 join fetch에 비해 복잡하나 셀렉트 문이 줄어들어 성능이 향상된다
         return orderQueryRepository.findAllByDto_optimization();
     }
 
     //ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
-
+    //JPA에서 DTO로 직접 조회 - 플랫 데이터 최적화 (V4,V5와 완전 다른 방식)
     @GetMapping("api/v6/orders")
     public List<OrderQueryDto> orderV6() { //쿼리 1번으로 최적화 //데이터 중복이 되므로 V5보다 성능 최적화가 되지 않을 수도 있다
         List<OrderFlatDto> flats = orderQueryRepository.findAllByDto_flat();
