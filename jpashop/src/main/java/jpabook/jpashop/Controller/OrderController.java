@@ -32,6 +32,7 @@ public class OrderController {
 
         return "order/orderForm";
     }
+
     @PostMapping(value = "/order") //@RequestParam으로 html에 memberId,itemId,count라는 이름을 가진 변수들의 값을 받아온다
     public String order(@RequestParam("memberId") Long memberId,
                         @RequestParam("itemId") Long itemId,
