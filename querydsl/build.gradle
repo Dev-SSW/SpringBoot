@@ -30,7 +30,7 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
 	//value에 ? 뜨는 것이 무슨 값인지를 볼 수 있다 yml에서 trace 설정을 하지 않아도 된다
-	implementation 'com.github.gavlyukovskiy:p6spy-spring-boot-starter:1.9.0'
+	//implementation 'com.github.gavlyukovskiy:p6spy-spring-boot-starter:1.9.0'
 	
 	//test 롬복 사용
 	testCompileOnly 'org.projectlombok:lombok'
@@ -42,7 +42,6 @@ dependencies {
 	annotationProcessor "jakarta.annotation:jakarta.annotation-api"
 	annotationProcessor "jakarta.persistence:jakarta.persistence-api"
 	//이후 bulid -> clean, other -> compileJava 실행
-	//Ctrl + Alt + S에서 "Build and run using : Gradle"로 설정되어야 한다
 }
 
 tasks.named('test') {

@@ -1,18 +1,31 @@
 package study.querydsl;
 
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.ExpressionUtils;
+import com.querydsl.core.types.Predicate;
+import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.PersistenceUnit;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Commit;
 import org.springframework.transaction.annotation.Transactional;
+import study.querydsl.Dto.MemberDto;
+import study.querydsl.Dto.QMemberDto;
+import study.querydsl.Dto.UserDto;
 import study.querydsl.Entity.Member;
 import study.querydsl.Entity.QMember;
-import study.querydsl.Entity.QTeam;
 import study.querydsl.Entity.Team;
 
 import java.util.List;
@@ -210,8 +223,7 @@ public class QuerydslBasicTest {
                 .containsExactly("member1", "member2");
     }
 
-    //세타 조인, 회원의 이름이 팀 이름과 같은 회원 조회 (세타 조인 : 모든 것을 막 조회) - 외부 조인이 불가능하다
-    @Test
+    @Test //세타 조인, 회원의 이름이 팀 이름과 같은 회원 조회 (세타 조인 : 모든 것을 막 조회) - 외부 조인이 불가능하다
     public void Test_theta_join() {
         em.persist(new Member("teamA"));
         em.persist(new Member("teamB"));
@@ -244,8 +256,7 @@ public class QuerydslBasicTest {
         }
     }
     //2. 연관관계 없는 엔티티 외부 조인
-    //예) 회원의 이름과 팀의 이름이 같은 대상 외부 조인
-    @Test
+    @Test //예) 회원의 이름과 팀의 이름이 같은 대상 외부 조인
     public void Test_On_no_relation() {
         em.persist(new Member("teamA"));
         em.persist(new Member("teamB"));
@@ -263,4 +274,390 @@ public class QuerydslBasicTest {
             System.out.println("tuple = " + tuple);
         }
     }
+
+    @PersistenceUnit
+    EntityManagerFactory emf;
+    @Test //페치 조인 없음
+    public void Test_fetch_join_no() {
+        em.flush();
+        em.clear();
+
+        Member result = queryFactory
+                .selectFrom(member)
+                .where(member.username.eq("member1"))
+                .fetchOne();
+
+        boolean loaded = emf.getPersistenceUnitUtil().isLoaded(result.getTeam());
+        org.assertj.core.api.Assertions.assertThat(loaded).as("페치 조인 미적용").isFalse();
+
+    }
+
+    @Test //페치 조인 활용
+    public void Test_fetch_join() {
+        em.flush();
+        em.clear();
+
+        Member result = queryFactory
+                .selectFrom(member)
+                .join(member.team, team).fetchJoin()
+                .where(member.username.eq("member1"))
+                .fetchOne();
+
+        boolean loaded = emf.getPersistenceUnitUtil().isLoaded(result.getTeam());
+        org.assertj.core.api.Assertions.assertThat(loaded).as("페치 조인 미적용").isTrue();
+    }
+
+    /**
+     * 나이가 가장 많은 회원 조회
+     */
+    @Test //서브 쿼리
+    public void Test_SubQuery() {
+        QMember memberSub = new QMember("memberSub"); //바깥에 있는 멤버와 겹치면 안되므로 정의
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .where(member.age.eq(
+                        JPAExpressions //서브 쿼리
+                                .select(memberSub.age.max())
+                                .from(memberSub)
+                ))
+                .fetch();
+        org.assertj.core.api.Assertions.assertThat(result)
+                .extracting("age")
+                .containsExactly(40);
+    }
+    /**
+     * 나이가 평균 이상인 회원 조회
+     */
+    @Test //서브 쿼리
+    public void Test_SubQueryGoe() {
+        QMember memberSub = new QMember("memberSub"); //바깥에 있는 멤버와 겹치면 안되므로 정의
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .where(member.age.goe( //greater or equal
+                        JPAExpressions //서브 쿼리
+                                .select(memberSub.age.avg())
+                                .from(memberSub)
+                ))
+                .fetch();
+        org.assertj.core.api.Assertions.assertThat(result)
+                .extracting("age")
+                .containsExactly(30,40);
+    }
+
+    /**
+     * 나이가 평균 이상인 회원 조회
+     */
+    @Test //서브 쿼리
+    public void Test_SubQueryIn() {
+        QMember memberSub = new QMember("memberSub"); //바깥에 있는 멤버와 겹치면 안되므로 정의
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .where(member.age.in( //뭐뭐 이고, 뭐뭐 인 것
+                        JPAExpressions //서브 쿼리
+                                .select(memberSub.age)
+                                .from(memberSub)
+                                .where(memberSub.age.gt(10))
+                ))
+                .fetch();
+        org.assertj.core.api.Assertions.assertThat(result)
+                .extracting("age")
+                .containsExactly(20, 30, 40);
+    }
+
+    @Test //셀렉트에서의 서브 쿼리
+    public void Test_selectSubQuery() {
+        QMember memberSub = new QMember("memberSub");
+        List<Tuple> result = queryFactory
+                .select(member.username,
+                        JPAExpressions
+                                .select(memberSub.age.avg())
+                                .from(memberSub)
+                )
+                .from(member)
+                .fetch();
+        for (Tuple tuple : result) {
+            System.out.println("tuple = " + tuple);
+        }
+    }
+    //서브 쿼리는 from 절에서 사용할 수 없다는 단점이 있다
+    //해결 방안 1.서브쿼리를 join으로 변경 2. 애플리케이션을 쿼리 2번 분리해서 실행 3. nativeSQL을 사용한다
+
+    @Test //Case 문
+    public void Test_basicCase() {
+        List<String> result = queryFactory
+                .select(member.age
+                        .when(10).then("열살")
+                        .when(20).then("스무살")
+                        .otherwise("기타"))
+                .from(member)
+                .fetch();
+        for (String s : result) {
+            System.out.println("s = " + s);
+        }
+    }
+    
+    @Test
+    public void Test_compleCase() {
+        List<String> result = queryFactory
+                .select(new CaseBuilder()
+                        .when(member.age.between(0, 20)).then("0~20살")
+                        .when(member.age.between(21, 30)).then("21~30살")
+                        .otherwise("기타"))
+                .from(member)
+                .fetch();
+
+        for (String s : result) {
+            System.out.println("s = " + s);
+        }
+    }
+    
+    @Test //상수 더하기
+    public void Test_constant() {
+        List<Tuple> result = queryFactory
+                .select(member.username, Expressions.constant("A"))
+                .from(member)
+                .fetch();
+        for (Tuple tuple : result) {
+            System.out.println("tuple = " + tuple);
+        }
+    }
+    
+    @Test //문자 더하기
+    public void Test_concat() {
+        List<String> result = queryFactory
+                .select(member.username.concat("_").concat(member.age.stringValue()))
+                .from(member)
+                .where(member.username.eq("member1"))
+                .fetch();
+        for (String s : result) {
+            System.out.println("s = " + s);
+        }
+    }
+
+    @Test //프로젝션 : 셀렉트 대상 지정 //한 개의 대상 찾기
+    public void Test_simpleProjection() {
+        List<String> result = queryFactory
+                .select(member.username)
+                .from(member)
+                .fetch();
+        for (String s : result) {
+            System.out.println("s = " + s);
+        }
+    }
+
+    @Test //두 개의 대상 찾기
+    public void Test_tupleProjection() {
+        List<Tuple> result = queryFactory
+                .select(member.username, member.age)
+                .from(member)
+                .fetch();
+        for (Tuple tuple : result) {
+            String s = tuple.get(member.username);
+            Integer i = tuple.get(member.age);
+            System.out.println("i = " + i);
+            System.out.println("s = " + s);
+        }
+    }
+
+    @Test //세 개 이상 대상 찾기 (DTO를 통하여) //JPQL 버전
+    public void Test_findDtoByJPQL() {
+        List<MemberDto> resultList =
+                em.createQuery("select new study.querydsl.Dto.MemberDto(m.username, m.age) from Member m", MemberDto.class)
+                .getResultList();
+
+        for (MemberDto memberDto : resultList) {
+            System.out.println("memberDto = " + memberDto);
+        }
+    }
+    @Test //세 개 이상 대상 찾기 (DTO의 getter, setter를 통하여) //queryDSL 버전
+    public void Test_findDtoByQueryDsl_Setter() {
+        List<MemberDto> result = queryFactory
+                .select(Projections.bean(MemberDto.class, member.username, member.age))
+                .from(member)
+                .fetch();
+        for (MemberDto memberDto : result) {
+            System.out.println("memberDto = " + memberDto);
+        }
+    }
+    @Test //세 개 이상 대상 찾기 (DTO의 필드를 통하여) //DTO에 게터 세터가 없어도 알아서 필드에 꽂는다
+    public void Test_findDtoByField() {
+        List<MemberDto> result = queryFactory
+                .select(Projections.fields(MemberDto.class, member.username, member.age))
+                .from(member)
+                .fetch();
+        for (MemberDto memberDto : result) {
+            System.out.println("memberDto = " + memberDto);
+        }
+    }
+    
+    @Test //세 개 이상 대상 찾기 (DTO의 생성자를 통하여)
+    public void Test_findDtoByConstructor() {
+        List<MemberDto> result = queryFactory
+                .select(Projections.constructor(MemberDto.class, member.username, member.age))
+                .from(member)
+                .fetch();
+        for (MemberDto memberDto : result) {
+            System.out.println("memberDto = " + memberDto);
+        }
+    }
+
+    @Test //세 개 이상 대상 찾기 (User DTO를 통하여)
+    public void Test_findUserDto_Field() { //username이 아닌 name이 dto에 변수명으로 들어가 있는 경우이다
+        QMember memberSub = new QMember("memberSub");
+        List<UserDto> result = queryFactory
+                .select(Projections.fields(UserDto.class,
+                        member.username.as("name"), //이름이 다르므로 name으로 맞춰준다
+                        ExpressionUtils.as(JPAExpressions //서브 쿼리
+                                .select(memberSub.age.max()) //최대 나이로 찍고 싶으면
+                                .from(memberSub),"age") //서브 쿼리이기에 이름이 없으므로 age로 맞춰준다
+                        ))
+                .from(member)
+                .fetch();
+        for (UserDto userDto : result) {
+            System.out.println("memberDto = " + userDto);
+        }
+    }
+
+    @Test //세 개 이상 대상 찾기 (DTO의 생성자를 통하여) //필드 네임과 상관없음으로 as로 이름 맞추는 것은 필요하지 않다
+    public void Test_findUserDto_Constructor() {
+        List<UserDto> result = queryFactory
+                .select(Projections.constructor(UserDto.class, member.username, member.age))
+                .from(member)
+                .fetch();
+        for (UserDto userDto : result) {
+            System.out.println("memberDto = " + userDto);
+        }
+    }
+    
+    @Test //@QueryProjection
+    public void Test_findDtoByQueryProjection() { //queryDSL에 의존성을 가지게 되는 것이 단점이다
+        List<MemberDto> result = queryFactory
+                .select(new QMemberDto(member.username, member.age/*member.id*/))
+                //컴파일 시점이 아닌 코드에서 오류를 찾을 수 있다는 장점이 있다
+                .from(member)
+                .fetch();
+
+        for (MemberDto memberDto : result) {
+            System.out.println("memberDto = " + memberDto);
+        }
+    }
+
+    @Test//동적 쿼리 - booleanbuilder 사용
+    public void Test_dynamicQuery_BooleanBuilder() {
+        String usernameParam = "member1";
+        Integer ageParam = null;
+
+        List<Member> result = searchMember1(usernameParam, ageParam);
+        org.assertj.core.api.Assertions.assertThat(result.size()).isEqualTo(1);
+    }
+    
+    @Test //동적 쿼리 - where 다중 파라미터 사용 (메서드로 뽑으면 조립이 가능하고, 메서드를 재활용할 수도 있다)
+    public void Test_dynamicQuery_WhereParam() {
+        String usernameParam = "member1";
+        Integer ageParam = 10;
+
+        List<Member> result = searchMember2(usernameParam, ageParam);
+        org.assertj.core.api.Assertions.assertThat(result.size()).isEqualTo(1);
+    }
+
+    @Test //대용량 벌크 연산
+    public void Test_bulkUpdate() {
+        long count = queryFactory
+                .update(member)
+                .set(member.username, "비회원")
+                .where(member.age.lt(28))
+                .execute();
+        //member1 = 비회원
+        //member2 = 비회원
+        //member3 = 30
+        //member4 = 40
+        //영속성 컨텍스트를 무시하고 업데이트를 하기 때문에 DB와 맞지 않다
+        //영속성 컨텍스트가 우선이므로 DB에서 가져온 애를 버리게 된다
+        em.flush();
+        em.clear();
+        //초기화를 통해 DB와 영속성 컨텍스트를 맞춰주어야 한다
+        List<Member> result = queryFactory.selectFrom(member).fetch();
+
+        for (Member member1 : result) {
+            System.out.println("member1 = " + member1);
+        }
+    }
+
+    @Test //bulk 기존 숫자에 더하기, 곱하기
+    public void Test_bulkAdd() {
+        long count = queryFactory
+                .update(member)
+                .set(member.age, member.age.add(-1))
+//                .set(member.age, member.age.multiply(2))
+                .execute();
+    }
+
+    @Test //bulk delete
+    public void Test_bulkDelete() {
+        long count = queryFactory
+                .delete(member)
+                .where(member.age.gt(18))
+                .execute();
+    }
+    
+    @Test //SQL Function
+    public void Test_sqlFunction() {
+        List<String> result = queryFactory
+                .select(Expressions.stringTemplate(
+                        "function('replace', {0}, {1}, {2})", member.username, "member", "M"))
+                .from(member)
+                .fetch();
+
+        for (String s : result) {
+            System.out.println("s = " + s);
+        }
+    }
+    
+    @Test
+    public void Test_sqlFunction2() {
+        List<String> result = queryFactory
+                .select(member.username)
+                .from(member)
+//                .where(member.username.eq(Expressions.stringTemplate(
+//                        "function('lower', {0})", member.username
+//                )))
+                .where(member.username.eq(member.username.lower()))
+                .fetch();
+
+        for (String s : result) {
+            System.out.println("s = " + s);
+        }
+    }
+    //ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ메서드ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
+    private List<Member> searchMember1(String usernameParam, Integer ageParam) {
+        BooleanBuilder builder = new BooleanBuilder(/*member.username.eq(usernameParam)*/ /*방어 코드 (비어있으면 안될 때)*/);
+        if(usernameParam != null) {
+            builder.and(member.username.eq(usernameParam));
+        }
+        if(ageParam != null) {
+            builder.and(member.age.eq(ageParam));
+        }
+        return queryFactory
+                .selectFrom(member)
+                .where(builder)
+                .fetch();
+    }
+
+    private List<Member> searchMember2(String usernameParam, Integer ageParam) {
+        return queryFactory
+                .selectFrom(member)
+                .where(allEq(usernameParam, ageParam))
+                .fetch();
+    }
+    private BooleanExpression usernameEq(String usernameParam) {
+        return usernameParam != null ? member.username.eq(usernameParam) : null;
+    }
+    private BooleanExpression ageEq(Integer ageParam) {
+        return ageParam != null ? member.age.eq(ageParam) : null;
+    }
+
+    private BooleanExpression allEq(String usernameParam, Integer ageParam) { //조립이 가능하다
+        return usernameEq(usernameParam).and(ageEq(ageParam));
+    }
 }
+
