@@ -1,0 +1,57 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.2.2'
+	id 'io.spring.dependency-management' version '1.1.4'
+}
+
+group = 'study'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	sourceCompatibility = '17'
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'  //SpringDataJPA
+	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf' //타임리프
+	implementation 'org.springframework.boot:spring-boot-starter-validation'//검증
+	implementation 'org.springframework.boot:spring-boot-starter-web'       //스프링 Web
+
+	compileOnly 'org.projectlombok:lombok' 									//롬복
+	runtimeOnly 'com.h2database:h2'											//H2 Database
+	annotationProcessor 'org.projectlombok:lombok'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+	//초기화되지 않은 프록시를 노출시키지 않게 하기 위한 모듈 추가
+	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-hibernate5-jakarta'	//프록시 관련 모듈
+
+	//test 롬복 사용
+	testCompileOnly 'org.projectlombok:lombok'
+	testAnnotationProcessor 'org.projectlombok:lombok'
+
+	//Querydsl 추가
+	implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
+	annotationProcessor "com.querydsl:querydsl-apt:${dependencyManagement.importedProperties['querydsl.version']}:jakarta"
+	annotationProcessor "jakarta.annotation:jakarta.annotation-api"
+	annotationProcessor "jakarta.persistence:jakarta.persistence-api"
+	//이후 bulid -> clean, other -> compileJava 실행 -> main 메소드를 한 번 실행해줘야 하는 것 같다
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
+
+clean {
+	//클린 작업 시 src/main/generated 삭제
+	delete file('src/main/generated')
+}

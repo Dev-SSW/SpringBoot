@@ -33,7 +33,6 @@ public class MemberRepositoryImpl /*extends QuerydslRepositorySupport*/ implemen
 
     @Override
     public List<MemberTeamDto> search(MemberSearchCondition condition) {
-
         //extends QuerydslRepositorySupport
 //        List<MemberTeamDto> result = from(member)
 //                .leftJoin(member.team, team)

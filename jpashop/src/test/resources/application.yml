@@ -1,18 +1,18 @@
-#데이터소스 부분은 본래의 yml파일을 보고 찾아주기에 설정할 필요가 없다
 spring:
 #  datasource:
-#    url: jdbc:h2:mem:testdb
+#    url: jdbc:h2:mem:test
 #    username: sa
 #    password:
 #    driver-class-name: org.h2.Driver
+
 #  jpa:
 #    hibernate:
 #      ddl-auto: create
 #    properties:
 #      hibernate:
-#        show_sql: true
-#        format_sql: true
-#    open-in-view: false
-logging.level:
-  org.hibernate.SQL: debug
-#  org.hibernate.type: trace
+#       show_sql: true
+#        format_sql: true #빨간 줄은 아무 상관이 없음
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.type: trace

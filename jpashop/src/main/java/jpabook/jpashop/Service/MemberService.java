@@ -1,7 +1,7 @@
 package jpabook.jpashop.Service;
 
-import jpabook.jpashop.Domain.Member;
 import jpabook.jpashop.Repository.MemberRepository;
+import jpabook.jpashop.domain.Member;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -10,49 +10,41 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor //final이 하나일 때 자동으로 생성자 만들어서 의존성 주입을 해준다 (필드 주입, 생성자 주입 방식 x)
-@Transactional(readOnly = true) //변경은 트랜잭션 안에서 가능, 변경이 많지 않을 경우 readOnly로 성능 향상시키기가 가능
+@Transactional(readOnly = true) //읽기 전용이라고 말해줌으로서 최적화 (읽기 전용인 것에만 추가)
+@RequiredArgsConstructor //final 필드만을 가지고 생성자를 만들어준다. (롬복 지원)
 public class MemberService {
+
+    private final MemberRepository memberRepository; //DI
+
     /*
-    @Autowired //필드 주입 방식
-    MemberRepository memberRepository; //의존성 주입 (스프링 빈에 등록한다 (변경이 가능하므로))
-    */
-    /*
-    private final MemberRepository memberRepository; //생성자 주입 방식
+    @Autowired //생성자 인젝션, 테스트 코드 작성이나 실행시 변환 방지를 위해 @RequiredArgsConstructor이 final 필드를 보고 자동 생성 해줌
     public MemberService(MemberRepository memberRepository) {
         this.memberRepository = memberRepository;
     }
     */
-    private final MemberRepository memberRepository;
 
-    //**회원가입**//
-    @Transactional //변경
+    //회원 가입
+    @Transactional //따로 설정해서 기본을 따르게 함
     public Long join(Member member) {
-        validateDuplicateMember(member); //중복회원검증
+        validateDuplicateMember(member);
         memberRepository.save(member);
         return member.getId();
     }
-    //**중복회원검증**//
+    //중복 회원 검증
     private void validateDuplicateMember(Member member) {
-        List<Member> findMembers = memberRepository.findByName(member.getName()); //이름을 통해 Member 내를 검사
-        if(!findMembers.isEmpty()) { //값이 있다면 중복이 된 것, 값이 없었다면 중복이 되지 않은 것 (회원 정보가)
+        //Exception
+        List<Member> findMembers = memberRepository.findByName(member.getName());
+        if(!findMembers.isEmpty()){
             throw new IllegalStateException("이미 존재하는 회원입니다.");
         }
     }
+    //회원 전체 조회
 
-    //**전체회원조회**//
-    public List<Member> findMembers(){
+    public List<Member> findMembers() {
         return memberRepository.findAll();
     }
-    //**단일회원조회**//
-    public Member findOne(Long memberId) {
-        return memberRepository.findOne(memberId);
+    //단건 조회
+    public Member findOne(Long MemberId) {
+        return memberRepository.findOne(MemberId);
     }
-
-    @Transactional //api에서 name 수정을 위해 만든 함수
-    public void update(Long id,String name) {
-        Member member = memberRepository.findOne(id);
-        member.setName(name);
-    }
-
 }

@@ -1,6 +1,5 @@
-package jpabook.jpashop.Domain;
+package jpabook.jpashop.domain;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.Getter;
@@ -9,20 +8,22 @@ import lombok.Setter;
 import java.util.ArrayList;
 import java.util.List;
 
-@Entity @Getter @Setter
+@Entity
+@Getter @Setter
 public class Member {
-    @Id @GeneratedValue
+
+    @Id@GeneratedValue
     @Column(name = "member_id")
     private Long id;
 
-    // @NotEmpty //값이 없으면 send 할 수 없도록 함 (postman) , but DTO에 넣는것이 개발자 입장에서는 어떤 값이 notempty인지 알 수 있으므로 DTO에 포함 시킨다
+    @NotEmpty
     private String name;
-    @Embedded //Embeddable 타입을 받아옴
+
+    @Embedded //내장 타입을 포함하고 있다는 뜻
     private Address address;
 
+    @OneToMany(mappedBy = "member") //내가 member_id의 주인이 아니고 거울일 뿐이다를 명시해준다. 그렇지 않으면 Order과 Member 클래스 둘 다에서 PK가 수정되기 떄문에
+    private List<Order> orders = new ArrayList<>(); //컬렉션을 바꾸지말고 써야지 다양한 문제 해결이 가능하다.
 
-    //@JsonIgnore //필요한 정보만 노출시키고 싶으면 (엔티티를 외부에 노출시키지 않기 위해)
-    @JsonIgnore
-    @OneToMany(mappedBy = "member") //Member의 PK가 Order에게 있기 때문에 Order에 정의된 member라는 Member 변수에 매핑
-    private List<Order> orders = new ArrayList<>();
+
 }

@@ -1,4 +1,4 @@
-package jpabook.jpashop.Domain;
+package jpabook.jpashop.domain;
 
 public enum DeliveryStatus {
     READY, COMP

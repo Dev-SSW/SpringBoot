@@ -1,10 +1,9 @@
 package jpabook.jpashop.Controller;
 
-import jpabook.jpashop.Controller.Form.MemberForm;
-import jpabook.jpashop.Domain.Address;
-import jpabook.jpashop.Domain.Member;
-import jpabook.jpashop.Service.MemberService;
 import jakarta.validation.Valid;
+import jpabook.jpashop.Service.MemberService;
+import jpabook.jpashop.domain.Address;
+import jpabook.jpashop.domain.Member;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,20 +17,17 @@ import java.util.List;
 @RequiredArgsConstructor
 public class MemberController {
     private final MemberService memberService;
-    // mebers/new 주소 요청을 받으면 createMemberForm.html으로 이동 ->
-    // PostMapping을 통해 회원 정보를 저장 후 다시 "/" 페이지로 돌려보냄
-    // members 주소 요청을 받으면 memberList.html로 이동 -> 목록 확인
 
-    //**회원등록**//
-    @GetMapping(value = "/members/new") //주로 조회할 때 사용, 서버의 리소스를 조회할 때 사용합니다.
+    @GetMapping("/members/new")
     public String createForm(Model model) {
         model.addAttribute("memberForm", new MemberForm());
         return "members/createMemberForm";
     }
-
-    @PostMapping(value = "/members/new") //주로 노출하면 안되는 데이터를 저장할 때 사용, 서버에 리소스를 등록(저장)할 때 사용합니다.
-    public String create(@Valid MemberForm form, BindingResult result) { //valid는 request body를 검증, BindingResult은 검증 오류 저장 객체
-        if (result.hasErrors()) { return "members/createMemberForm"; }
+    @PostMapping("/members/new") //Valid을 통해 MemberForm에 있는 NotEmpty와 같은 어노테이션이 적용되도록 만들어줌
+    public String create(@Valid MemberForm form, BindingResult result) {
+        if(result.hasErrors()) { //@NotEmpty 어노테이션이 작동되게 된다.
+            return "members/createMemberForm";
+        }
         Address address = new Address(form.getCity(), form.getStreet(), form.getZipcode());
         Member member = new Member();
         member.setName(form.getName());
@@ -39,12 +35,9 @@ public class MemberController {
         memberService.join(member);
         return "redirect:/";
     }
-
-    //**회원 목록 조회**//
-    @GetMapping(value = "/members") //조회한 상품을 뷰에 전달하기 위해 스프링 MVC가 제공하는 모델 객체에 저장, 실행할 뷰 이름을 반환
+    @GetMapping("/members")
     public String list(Model model) {
-        List<Member> members = memberService.findMembers();
-        model.addAttribute("members", members);
+        model.addAttribute("members" , memberService.findMembers());
         return "members/memberList";
     }
 }

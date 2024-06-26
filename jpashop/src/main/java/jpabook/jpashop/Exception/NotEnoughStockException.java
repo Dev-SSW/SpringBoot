@@ -1,9 +1,19 @@
-package jpabook.jpashop.Exception;
-//예외를 직접 만들어 준다
-public class NotEnoughStockException extends RuntimeException {
+package jpabook.jpashop.exception;
 
-    public NotEnoughStockException(){};
-    public NotEnoughStockException(String message) { super(message); }
-    public NotEnoughStockException(String message, Throwable cause) { super(message,cause); }
-    public NotEnoughStockException(Throwable cause) { super(cause); }
+public class NotEnoughStockException extends RuntimeException {
+    public NotEnoughStockException() {
+        super();
+    }
+
+    public NotEnoughStockException(String message) {
+        super(message);
+    }
+
+    public NotEnoughStockException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public NotEnoughStockException(Throwable cause) {
+        super(cause);
+    }
 }
