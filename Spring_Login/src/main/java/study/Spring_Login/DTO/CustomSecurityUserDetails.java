@@ -1,15 +1,14 @@
 package study.Spring_Login.DTO;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import study.Spring_Login.Domain.Member;
 
 import java.util.ArrayList;
 import java.util.Collection;
-public class CustomUserDetails implements UserDetails {
+//UserDetailsService에게 사용자 정보를 받고, UserDetails로 감싸서 사용
+public class CustomSecurityUserDetails implements UserDetails {
     private final Member member;
-    public CustomUserDetails(Member member) {
+    public CustomSecurityUserDetails(Member member) {
         this.member = member;
     }
     // 현재 member의 role을 반환 (ex. "ROLE_ADMIN" / "ROLE_USER" 등)

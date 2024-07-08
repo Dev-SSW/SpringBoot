@@ -14,6 +14,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import study.Spring_Login.DTO.JWTFilter;
 import study.Spring_Login.DTO.JWTUtil;
 import study.Spring_Login.DTO.LoginFilter;
+import study.Spring_Login.Domain.MemberRole;
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -24,6 +26,44 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
     }
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
+
+        // 접근 권한 설정
+        http
+                .authorizeHttpRequests((auth) -> auth
+                        .requestMatchers("/security-login/admin").hasRole(MemberRole.ADMIN.name())
+                        .requestMatchers("/security-login/info").authenticated()
+                        .anyRequest().permitAll()
+                );
+
+        // 폼 로그인 방식 설정
+        http
+                .formLogin((auth) -> auth.loginPage("/security-login/login")
+                        .loginProcessingUrl("/security-login/login")
+                        .usernameParameter("loginId")
+                        .passwordParameter("password")
+                        .defaultSuccessUrl("/security-login")
+                        .failureUrl("/security-login")
+                        .permitAll());
+
+        // OAuth 2.0 로그인 방식 설정
+        http
+                .oauth2Login((auth) -> auth.loginPage("/security-login/login")
+                        .defaultSuccessUrl("/security-login")
+                        .failureUrl("/security-login/login")
+                        .permitAll());
+
+        http
+                .logout((auth) -> auth
+                        .logoutUrl("/security-login/logout"));
+
+        http
+                .csrf((auth) -> auth.disable());
+
+        return http.build();
+    }
+    /*
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
         // 스프링 시큐리티 jwt 로그인 설정
@@ -55,7 +95,7 @@ public class SecurityConfig {
                 .addFilterBefore(new JWTFilter(jwtUtil), LoginFilter.class);
         return http.build();
     }
-
+    */
     /*
     // 스프링 시큐리티 필터 메서드
     @Bean

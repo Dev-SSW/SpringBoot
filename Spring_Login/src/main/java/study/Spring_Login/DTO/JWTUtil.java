@@ -9,6 +9,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
+//jwt 토큰 생성을 위한 util
 @Component
 public class JWTUtil {
     private SecretKey secretKey;

@@ -14,6 +14,7 @@ import study.Spring_Login.Domain.MemberRole;
 
 import java.io.IOException;
 
+//spring security filter chain 요청에 담긴 jwt를 검증하기 위한 커스텀 필터,
 @RequiredArgsConstructor
 public class JWTFilter extends OncePerRequestFilter {
     private final JWTUtil jwtUtil;
@@ -52,9 +53,9 @@ public class JWTFilter extends OncePerRequestFilter {
         member.setRole(MemberRole.valueOf(role));
 
         // UserDetails에 회원 정보 객체 담기
-        CustomUserDetails customUserDetails = new CustomUserDetails(member);
+        CustomSecurityUserDetails customSecurityUserDetails = new CustomSecurityUserDetails(member);
         // 스프링 시큐리티 인증 토큰 생성
-        Authentication authToken = new UsernamePasswordAuthenticationToken(customUserDetails, null, customUserDetails.getAuthorities());
+        Authentication authToken = new UsernamePasswordAuthenticationToken(customSecurityUserDetails, null, customSecurityUserDetails.getAuthorities());
         // 세션에 사용자 등록 => 일시적으로 user 세션 생성
         SecurityContextHolder.getContext().setAuthentication(authToken);
         // 다음 필터로 request, response 넘겨줌
