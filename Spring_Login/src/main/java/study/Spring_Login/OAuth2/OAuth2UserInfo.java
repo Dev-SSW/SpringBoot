@@ -1,4 +1,4 @@
-package study.Spring_Login.DTO;
+package study.Spring_Login.OAuth2;
 
 public interface OAuth2UserInfo {
     String getProvider();

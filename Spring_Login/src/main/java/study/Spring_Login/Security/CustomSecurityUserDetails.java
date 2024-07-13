@@ -1,45 +1,34 @@
-package study.Spring_Login.DTO;
-
+package study.Spring_Login.Security;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import study.Spring_Login.Domain.Member;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Map;
-
-public class CustomOauth2UserDetails implements UserDetails, OAuth2User {
+//UserDetailsService에게 사용자 정보를 받고, UserDetails로 감싸서 사용
+public class CustomSecurityUserDetails implements UserDetails {
     private final Member member;
-    private Map<String, Object> attributes;
-    public CustomOauth2UserDetails(Member member, Map<String, Object> attributes) {
+    public CustomSecurityUserDetails(Member member) {
         this.member = member;
-        this.attributes = attributes;
     }
-    @Override
-    public String getName() {
-        return null;
-    }
-    @Override
-    public Map<String, Object> getAttributes() {
-        return attributes;
-    }
-
+    // 현재 member의 role을 반환 (ex. "ROLE_ADMIN" / "ROLE_USER" 등)
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         Collection<GrantedAuthority> collection = new ArrayList<>();
         collection.add(new GrantedAuthority() {
             @Override
             public String getAuthority() {
-                return member.getRole().name();
+                return "ROLE_" + member.getRole().name();
             }
         });
         return collection;
     }
+    // user의 비밀번호 반환
     @Override
     public String getPassword() {
         return member.getPassword();
     }
+    // user의 LoginId를 반환
     @Override
     public String getUsername() {
         return member.getLoginId();
@@ -60,4 +49,8 @@ public class CustomOauth2UserDetails implements UserDetails, OAuth2User {
     public boolean isEnabled() {
         return true;
     }
+    //isAccountNonExpired() : 계정 만료 여부 => true : 만료 X
+    //isAccountNonLocked() : 계정 잠김 여부 => true : 잠김 X
+    //isCredentialsNonExpired() : 비밀번호 만료 여부 => true : 만료 X
+    //isEnabled() : 계정 사용 가능 여부 => true : 사용 가능 O
 }

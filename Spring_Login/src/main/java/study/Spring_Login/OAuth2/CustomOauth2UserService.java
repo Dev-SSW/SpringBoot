@@ -1,4 +1,4 @@
-package study.Spring_Login.Service;
+package study.Spring_Login.OAuth2;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -7,9 +7,6 @@ import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
-import study.Spring_Login.DTO.CustomOauth2UserDetails;
-import study.Spring_Login.DTO.GoogleUserDetails;
-import study.Spring_Login.DTO.OAuth2UserInfo;
 import study.Spring_Login.Domain.Member;
 import study.Spring_Login.Domain.MemberRole;
 import study.Spring_Login.Repository.MemberRepository;

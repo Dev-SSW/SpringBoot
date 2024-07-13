@@ -1,11 +1,10 @@
-package study.Spring_Login.Service;
+package study.Spring_Login.Security;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import study.Spring_Login.DTO.CustomSecurityUserDetails;
 import study.Spring_Login.Domain.Member;
 import study.Spring_Login.Repository.MemberRepository;
 

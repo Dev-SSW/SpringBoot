@@ -79,6 +79,7 @@ public class SecurityLoginController {
         model.addAttribute("pageName", "스프링 시큐리티 로그인");
         return "redirect:/security-login";
     }
+
     @GetMapping("security-login/info")
     public String memberInfo(Authentication auth, Model model) {
         model.addAttribute("loginType", "security-login");
