@@ -1,0 +1,114 @@
+package Study.Spring_Login_JWT.Controller;
+
+import Study.Spring_Login_JWT.Member.DTO.JoinRequest;
+import Study.Spring_Login_JWT.Member.DTO.LoginRequest;
+import Study.Spring_Login_JWT.Member.Member;
+import Study.Spring_Login_JWT.Member.MemberService;
+import Study.Spring_Login_JWT.SecurityJWT.JWTUtil;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Collection;
+import java.util.Iterator;
+
+@RestController
+@RequiredArgsConstructor
+public class    JwtLoginController {
+    private final MemberService memberService;
+    private final JWTUtil jwtUtil;
+
+    /* home */
+    @GetMapping(value = {"jwt-login", "jwt-login/"})
+    public String home(Model model) {
+        model.addAttribute("loginType", "jwt-login");
+        model.addAttribute("pageName", "스프링 시큐리티 JWT 로그인");
+
+        String loginId = SecurityContextHolder.getContext().getAuthentication().getName();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
+        Iterator<? extends GrantedAuthority> iter = authorities.iterator();
+        GrantedAuthority auth = iter.next();
+        String role = auth.getAuthority();
+
+        Member loginMember = memberService.getLoginMemberByLoginId(loginId);
+        if (loginMember != null) {
+            model.addAttribute("name", loginMember.getName());
+        }
+        return "home";
+    }
+
+    /* 회원가입 URL로 GET -> HTML로 보냄 */
+    @GetMapping("jwt-login/join")
+    public String joinPage(Model model) {
+        model.addAttribute("loginType", "jwt-login");
+        model.addAttribute("pageName", "스프링 시큐리티 JWT 로그인");
+        // 회원가입을 위해서 model 통해서 joinRequest 전달
+        model.addAttribute("joinRequest", new JoinRequest());
+        return "join";
+    }
+
+    /* HTML에서 POST 전송 -> 회원가입 POST */
+    @PostMapping("jwt-login/join")
+    public String join(@Valid @ModelAttribute JoinRequest joinRequest, BindingResult bindingResult, Model model) {
+        model.addAttribute("loginType", "jwt-login");
+        model.addAttribute("pageName", "스프링 시큐리티 JWT 로그인");
+
+        // ID 중복 여부 확인
+        if (memberService.checkLoginIdDuplicate(joinRequest.getLoginId())) {
+            return "ID가 존재합니다.";
+        }
+
+        // 비밀번호 = 비밀번호 체크 여부 확인
+        if (!joinRequest.getPassword().equals(joinRequest.getPasswordCheck())) {
+            return "비밀번호가 일치하지 않습니다.";
+        }
+
+        // 에러가 존재하지 않을 시 joinRequest 통해서 회원가입 완료
+        memberService.securityJoin(joinRequest);
+
+        // 회원가입 시 홈 화면으로 이동
+        return "redirect:/jwt-login";
+    }
+
+    /* HTML -> 로그인 POST */
+    @PostMapping("jwt-login/login")
+    public String login(@RequestBody LoginRequest loginRequest){
+        Member member = memberService.login(loginRequest);
+        if(member==null){
+            return "ID 또는 비밀번호가 일치하지 않습니다!";
+        }
+        String token = jwtUtil.createJwt(member.getLoginId(), member.getRole().name(), 60 * 60 * 1000L);
+        return token;
+    }
+
+    /* 로그아웃 */
+    /*
+    @GetMapping("jwt-login/logout")
+    public String logout(HttpServletRequest request, Model model) {
+        model.addAttribute("loginType", "security-login");
+        model.addAttribute("pageName", "스프링 시큐리티 로그인");
+        return "redirect:/security-login";
+    }
+    */
+
+    /* 마이 페이지 */
+    @GetMapping("jwt-login/info")
+    public String memberInfo(Authentication auth, Model model) {
+        Member loginMember = memberService.getLoginMemberByLoginId(auth.getName());
+        return "ID : " + loginMember.getLoginId() + "\n이름 : " + loginMember.getName() + "\nrole : " + loginMember.getRole();
+    }
+
+    /* 관리자 페이지 */
+    @GetMapping("jwt-login/admin")
+    public String adminPage(Model model) {
+        return "인가 성공!";
+    }
+}
